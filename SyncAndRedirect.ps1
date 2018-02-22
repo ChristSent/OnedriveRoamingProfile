@@ -12,13 +12,8 @@
     The path.
 #>
 
-<<<<<<< HEAD
 $O365domain = ""
 $O365TennantName = ""
-=======
-$O365domain = "wellsolveit.com"
-$O365TennantName = "We'll Solve IT"
->>>>>>> 0e39a810e2fc5fa9eb5930f127bdd32680b9feef
 $ONEDRIVESYNC = "$env:USERPROFILE\OneDrive - $O365TennantName"
 
 function main {
