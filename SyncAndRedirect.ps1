@@ -11,6 +11,74 @@
 .PARAMETER Path
     The path.
 #>
+
+$O365domain = ""
+$O365TennantName = ""
+$ONEDRIVESYNC = "$env:USERPROFILE\OneDrive - $O365TennantName"
+
+function main {
+
+# Root Folders
+Set-KnownFolderPath -KnownFolder 'Desktop' -Path "$ONEDRIVESYNC\Desktop"
+#move $env:
+Set-KnownFolderPath -KnownFolder 'Documents' -Path "$ONEDRIVESYNC\Documents"
+Set-KnownFolderPath -KnownFolder 'Downloads' -Path "$ONEDRIVESYNC\Downloads"
+Set-KnownFolderPath -KnownFolder 'Pictures' -Path "$ONEDRIVESYNC\Pictures"
+Set-KnownFolderPath -KnownFolder 'Music' -Path "$ONEDRIVESYNC\Music"
+Set-KnownFolderPath -KnownFolder 'Videos' -Path "$ONEDRIVESYNC\Videos"
+
+# Annoying Other Folders
+Set-KnownFolderPath -KnownFolder 'Contacts' -Path "$ONEDRIVESYNC\Work Sync\Contacts"
+Set-KnownFolderPath -KnownFolder 'Favorites' -Path "$ONEDRIVESYNC\Work Sync\Favorites"
+Set-KnownFolderPath -KnownFolder 'Links' -Path "$ONEDRIVESYNC\Work Sync\Links"
+Set-KnownFolderPath -KnownFolder 'SavedGames' -Path "$ONEDRIVESYNC\Work Sync\SavedGames"
+Set-KnownFolderPath -KnownFolder 'SavedSearches' -Path "$ONEDRIVESYNC\Work Sync\SavedSearches"
+Set-KnownFolderPath -KnownFolder 'StartMenu' -Path "$ONEDRIVESYNC\Work Sync\StartMenu"
+Set-KnownFolderPath -KnownFolder 'RoamingAppData' -Path "$ONEDRIVESYNC\Work Sync\RoamingAppData"
+
+#Uncomment this option if you use Azure AD. It can provide single-signon capability.
+#New-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\OneDrive -Name EnableADAL -PropertyType DWORD -Value 1 
+<#Silent Sync Auto-Account Configuration for OneDrive with ADAL- Microsoft Azure Active Directory Authentication Library 
+will now support silent sync and account config for OneDrive. This will automatically configure OneDrive 
+during a new device provisioning and ensure a new users OneDrive is automatically set up without 
+any interaction required from the end user#>
+
+#New-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\OneDrive -Name EnableAllOcsiClients -PropertyType DWORD -Value 1
+<#This setting enables live coauthoring and in-app sharing for Office files opened locally from your computer.
+Coauthoring and in-app sharing for Office files is allowed by default. (Coauthoring is available in Office 2013 and Office 2016.)
+If you enable this setting, coauthoring and in-app sharing for Office is enabled, but users can disable it on the Office tab in the sync client if they wish.
+If you disable this setting, coauthoring and in-app sharing for Office files is disabled, and the Office tab is hidden in the sync client. 
+If you disable this setting, then the "Users can choose how to handle Office files in conflict" setting will act as disabled and in case of file conflicts, 
+the file will be forked.#>
+
+New-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\OneDrive -Name DisablePersonalSync -PropertyType DWORD -Value 1
+<#This setting allows you to block users from syncing files from consumer (Microsoft Account-based) OneDrive. By default, 
+users are allowed to synchronize personal OneDrive accounts.
+If you enable this setting, users will be prevented from setting up a sync relationship for their personal OneDrive account. 
+If they had previously been synchronizing a personal OneDrive account, 
+they are shown an error when they start the sync client, but their files remain on the disk.
+If you disable this setting, users are allowed to synchronize personal OneDrive accounts.#>
+
+New-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\OneDrive -Name DefaultToBusinessFRE -PropertyType DWORD -Value 1
+<#This policy setting lets you configure OneDrive so that, when triggered, the first run experience is launched in a mode for users to configure their O365 account to sync with SPO.
+If you enable this policy setting:
+* If users unlink their account and the first run experience launches, it will upsell them to configure an organization account as opposed to a Microsoft account. 
+* If a user uninstalls OneDrive, this regkey will be removed. If they then later reinstall OneDrive, the first run will default to the experience for configuring a Microsoft account.
+If you disable or do not configure this policy setting, OneDrive will default to showing the first run experience for configuring a Microsoft account.#>
+
+#New-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\OneDrive\Tenants\TENAND-ID-GOES-HERE -Name DisableCustomRoot -PropertyType DWORD -Value 1
+<#This setting allows you to prevent users from changing the location of their OneDrive sync folder.
+If you enable this setting, users cannot change the location of their OneDrive - {tenant name} folder during the Welcome to OneDrive wizard. 
+This forces users to use either the default location, or, if you've set the "Set the default location for the OneDrive folder" setting, 
+ensures all users have their local OneDrive folder in the location that you've specified.
+If you disable this setting, users can change the location of their sync folder during the Welcome to OneDrive wizard.#>
+
+
+
+start odopen://sync?useremail=$env:USERNAME@$O365domain
+
+}
+
 function Set-KnownFolderPath {
     Param (
             [Parameter(Mandatory = $true)]
@@ -129,6 +197,8 @@ public extern static int SHSetKnownFolderPath(ref Guid folderId, uint flags, Int
 
     # Validate the path
     if (Test-Path $Path -PathType Container) {
+        $Leaf = Split-Path -Path "$Path" -Leaf
+	    Move-Item "$HOME\$Leaf\*" $Path
         # Call SHSetKnownFolderPath
         return $Type::SHSetKnownFolderPath([ref]$KnownFolders[$KnownFolder], 0, 0, $Path)
     } else {
@@ -139,36 +209,8 @@ public extern static int SHSetKnownFolderPath(ref Guid folderId, uint flags, Int
 	attrib +r $Path
 
 	$Leaf = Split-Path -Path "$Path" -Leaf
-	# Move-Item "$HOME\$Leaf\*" $Path
+	Move-Item "$HOME\$Leaf\*" $Path
 	# rd $HOME\$Leaf -recurse -Force
 
 }
-
-$ONEDRIVESYNC = "$env:USERPROFILE\OneDrive - EXAMPLE COMPANY"
-
-# Root Folders
-Set-KnownFolderPath -KnownFolder 'Desktop' -Path "$ONEDRIVESYNC\Desktop"
-Set-KnownFolderPath -KnownFolder 'Documents' -Path "$ONEDRIVESYNC\Documents"
-Set-KnownFolderPath -KnownFolder 'Downloads' -Path "$ONEDRIVESYNC\Downloads"
-Set-KnownFolderPath -KnownFolder 'Pictures' -Path "$ONEDRIVESYNC\Pictures"
-
-# Annoying Other Folders
-Set-KnownFolderPath -KnownFolder 'Contacts' -Path "$ONEDRIVESYNC\Work Sync\Contacts"
-Set-KnownFolderPath -KnownFolder 'Favorites' -Path "$ONEDRIVESYNC\Work Sync\Favorites"
-Set-KnownFolderPath -KnownFolder 'Links' -Path "$ONEDRIVESYNC\Work Sync\Links"
-Set-KnownFolderPath -KnownFolder 'Music' -Path "$ONEDRIVESYNC\Work Sync\Music"
-Set-KnownFolderPath -KnownFolder 'Saved Games' -Path "$ONEDRIVESYNC\Work Sync\Saved Games"
-Set-KnownFolderPath -KnownFolder 'Searches' -Path "$ONEDRIVESYNC\Work Sync\Searches"
-Set-KnownFolderPath -KnownFolder 'Start Menu' -Path "$ONEDRIVESYNC\Work Sync\Start Menu"
-Set-KnownFolderPath -KnownFolder 'Videos' -Path "$ONEDRIVESYNC\Work Sync\Videos"
-# Set-KnownFolderPath -KnownFolder 'AppData (Roaming)' -Path "$ONEDRIVESYNC\Work Sync\AppData"
-
-
-Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\OneDrive -Name EnableADAL -PropertyType DWORD -Value 1
-Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\OneDrive -Name EnableAllOcsiClients -PropertyType DWORD -Value 1
-Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\OneDrive -Name DisablePersonalSync -PropertyType DWORD -Value 1 
-Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\OneDrive -Name DefaultToBusinessFRE -PropertyType DWORD -Value 1
-Set-ItemProperty -Path HKCU:\SOFTWARE\Microsoft\OneDrive\Tenants\TENAND-ID-GOES-HERE -Name DisableCustomRoot -PropertyType DWORD -Value 1
-
-
-start odopen://sync?useremail=$env:USERNAME@example.com
+main
