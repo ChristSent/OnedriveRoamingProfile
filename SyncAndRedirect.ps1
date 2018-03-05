@@ -130,7 +130,7 @@ public extern static int SHSetKnownFolderPath(ref Guid folderId, uint flags, Int
 	if(!(Test-Path $Path -PathType Container)) {
 		New-Item -Path $Path -ItemType Directory -Force
     }
-    test-path $path
+
     # Validate the path
     if (Test-Path $Path -PathType Container) {
         $Leaf = Split-Path -Path "$Path" -Leaf
