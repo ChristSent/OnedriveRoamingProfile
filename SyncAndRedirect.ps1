@@ -1,7 +1,7 @@
 function Set-KnownFolderPath {
     Param (
             [Parameter(Mandatory = $true)]
-            [ValidateSet('AddNewPrograms', 'AdminTools', 'AppUpdates', 'CDBurning', 'ChangeRemovePrograms', 
+            [ValidateSet('AddNewPrograms', 'AdminTools', 'AppData', 'AppUpdates', 'CDBurning', 'ChangeRemovePrograms', 
                          'CommonAdminTools', 'CommonOEMLinks', 'CommonPrograms', 'CommonStartMenu', 
                          'CommonStartup', 'CommonTemplates', 'ComputerFolder', 'ConflictFolder', 
                          'ConnectionsFolder', 'Contacts', 'ControlPanelFolder', 'Cookies', 'Desktop', 
@@ -134,7 +134,7 @@ public extern static int SHSetKnownFolderPath(ref Guid folderId, uint flags, Int
     # Validate the path
     if (Test-Path $Path -PathType Container) {
         $Leaf = Split-Path -Path "$Path" -Leaf
-	    Move-Item "$HOME\$Leaf\*" $Path
+	    Move-Item "$HOME\$Leaf\*" $Path -Force
         # Call SHSetKnownFolderPath
         return $Type::SHSetKnownFolderPath([ref]$KnownFolders[$KnownFolder], 0, 0, $Path)
     } else {
@@ -245,12 +245,7 @@ function StartOneDrive-FolderRedirect {
         Set-KnownFolderPath -KnownFolder 'Contacts' -Path "$ONEDRIVESYNC\Work Sync\Contacts"
         Set-KnownFolderPath -KnownFolder 'Favorites' -Path "$ONEDRIVESYNC\Work Sync\Favorites"
         Set-KnownFolderPath -KnownFolder 'Links' -Path "$ONEDRIVESYNC\Work Sync\Links"
-
-        <# The following folders are probably not necessary, and probably aren't in user's dir by default
-        Set-KnownFolderPath -KnownFolder 'SavedGames' -Path "$ONEDRIVESYNC\Work Sync\SavedGames"
-        Set-KnownFolderPath -KnownFolder 'SavedSearches' -Path "$ONEDRIVESYNC\Work Sync\SavedSearches"
-        Set-KnownFolderPath -KnownFolder 'StartMenu' -Path "$ONEDRIVESYNC\Work Sync\StartMenu"
-        Set-KnownFolderPath -KnownFolder 'RoamingAppData' -Path "$ONEDRIVESYNC\Work Sync\RoamingAppData"
+        Set-KnownFolderPath -KnownFolder 'RoamingAppData' -Path "$ONEDRIVESYNC\Work Sync\AppData"
         #>
 
         #Uncomment this option if you use Azure AD. It can provide single-signon capability.
