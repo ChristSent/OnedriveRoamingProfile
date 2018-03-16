@@ -161,7 +161,7 @@ public extern static int SHSetKnownFolderPath(ref Guid folderId, uint flags, Int
 	Move-Item "$HOME\$Leaf\*" $Path
 	# rd $HOME\$Leaf -recurse -Force
 
-}#/function-set-knownfolderpath
+}#/function
 function StartOneDrive-FolderRedirect {
 <#
 .Synopsis
@@ -307,3 +307,4 @@ function StartOneDrive-FolderRedirect {
     End {
     }
 }#/function
+#
