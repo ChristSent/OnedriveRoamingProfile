@@ -1,7 +1,7 @@
 function Set-KnownFolderPath {
     Param (
-            [Parameter(Mandatory = $true)]
-            [ValidateSet('AddNewPrograms', 'AdminTools', 'AppData', 'AppUpdates', 'CDBurning', 'ChangeRemovePrograms', 
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('AddNewPrograms', 'AdminTools', 'AppData', 'AppUpdates', 'CDBurning', 'ChangeRemovePrograms', 
                          'CommonAdminTools', 'CommonOEMLinks', 'CommonPrograms', 'CommonStartMenu', 
                          'CommonStartup', 'CommonTemplates', 'ComputerFolder', 'ConflictFolder', 
                          'ConnectionsFolder', 'Contacts', 'ControlPanelFolder', 'Cookies', 'Desktop', 
@@ -19,10 +19,17 @@ function Set-KnownFolderPath {
                          'StartMenu', 'Startup', 'SyncManagerFolder', 'SyncResultsFolder', 'SyncSetupFolder', 
                          'System', 'SystemX86', 'Templates', 'TreeProperties', 'UserProfiles', 'UsersFiles', 
                          'Videos', 'Windows')]
-            [string]$KnownFolder,
+        [string]$KnownFolder,
 
-            [Parameter(Mandatory = $true)]
-            [string]$Path
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [Parameter(Mandatory=$true,
+                    ParameterSetName='Parameter Set 1')]
+        [ValidateNotNullOrEmpty()]
+        [ValidateSet("yes","no")]
+        [String]
+        $moveContent
     )
     # Define known folder GUIDs
     $KnownFolders = @{
@@ -130,19 +137,23 @@ public extern static int SHSetKnownFolderPath(ref Guid folderId, uint flags, Int
 		New-Item -Path $Path -ItemType Directory -Force
     }
 
-    # Validate the path
-    if (Test-Path $Path -PathType Container) {
-        $Leaf = Split-Path -Path "$Path" -Leaf
-        if ($Leaf -like "AppData") {
-	        Copy-Item "$HOME\$Leaf\Roaming" $Path -Force
+    # Move existing content to the redirected file path, unless triggered not to move
+    if ($moveContent -like "yes") {
+        if (Test-Path $Path -PathType Container) {
+            $Leaf = Split-Path -Path "$Path" -Leaf
+            if ($Leaf -like "AppData") {
+	            Copy-Item "$HOME\$Leaf\Roaming" $Path -Force
+            } else {
+	            Move-Item "$HOME\$Leaf\*" $Path -Force
+                # Call SHSetKnownFolderPath
+                return $Type::SHSetKnownFolderPath([ref]$KnownFolders[$KnownFolder], 0, 0, $Path)
+            }#/
         } else {
-	        Move-Item "$HOME\$Leaf\*" $Path -Force
-            # Call SHSetKnownFolderPath
-            return $Type::SHSetKnownFolderPath([ref]$KnownFolders[$KnownFolder], 0, 0, $Path)
-    } else {
-        throw New-Object System.IO.DirectoryNotFoundException "Could not find part of the path $Path."
+            throw New-Object System.IO.DirectoryNotFoundException "Could not find part of the path $Path."
+        }
+	} else {
+        Write-Output "Existing content will not be moved to the redirected file path"
     }
-	
 	# Fix up permissions, if we're still here
 	attrib +r $Path
 
@@ -150,7 +161,7 @@ public extern static int SHSetKnownFolderPath(ref Guid folderId, uint flags, Int
 	Move-Item "$HOME\$Leaf\*" $Path
 	# rd $HOME\$Leaf -recurse -Force
 
-}#/function-set-knownfolderpath
+}#/function
 function StartOneDrive-FolderRedirect {
 <#
 .Synopsis
@@ -196,28 +207,16 @@ function StartOneDrive-FolderRedirect {
         [Parameter(Mandatory=$true, 
                    ValueFromPipeline=$true,
                    ValueFromPipelineByPropertyName=$true, 
-                   ValueFromRemainingArguments=$false, 
+                   ValueFromRemainingArguments=$false,
                    Position=0,
                    ParameterSetName='Parameter Set 1')]
         [ValidateNotNullOrEmpty()]
-<#
-        [ValidateCount(0,5)]
-        [Alias("p1")]
-#>
         $O365domain,
 
         # Param2 help description
         [Parameter(Mandatory=$true,
                    ParameterSetName='Parameter Set 1')]
         [ValidateNotNullOrEmpty()]
-<#
-        [AllowNull()]
-        [AllowEmptyCollection()]
-        [AllowEmptyString()]
-        [ValidateScript({$true})]
-        [ValidateRange(0,5)]
-        [int]
-#>
         $O365TennantName,
 
         # Type of OneDrive account, Business or Personal
@@ -226,7 +225,14 @@ function StartOneDrive-FolderRedirect {
         [ValidateNotNullOrEmpty()]
         [ValidateSet("Business","Personal")]
         [String]
-        $OneDriveAccountType
+        $OneDriveAccountType,
+
+        [Parameter(Mandatory=$true,
+                   ParameterSetName='Parameter Set 1')]
+        [ValidateNotNullOrEmpty()]
+        [ValidateSet("yes","no")]
+        [String]
+        $moveContent
 #>
     )
     Begin {
@@ -243,19 +249,19 @@ function StartOneDrive-FolderRedirect {
     }
     Process {
         # Root Folders
-        Set-KnownFolderPath -KnownFolder 'Desktop' -Path "$ONEDRIVESYNC\Desktop"
+        Set-KnownFolderPath -KnownFolder 'Desktop' -Path "$ONEDRIVESYNC\Desktop" -moveContent $moveContent
         #move $env:
-        Set-KnownFolderPath -KnownFolder 'Documents' -Path "$ONEDRIVESYNC\Documents"
-        Set-KnownFolderPath -KnownFolder 'Downloads' -Path "$ONEDRIVESYNC\Downloads"
-        Set-KnownFolderPath -KnownFolder 'Pictures' -Path "$ONEDRIVESYNC\Pictures"
-        Set-KnownFolderPath -KnownFolder 'Music' -Path "$ONEDRIVESYNC\Music"
-        Set-KnownFolderPath -KnownFolder 'Videos' -Path "$ONEDRIVESYNC\Videos"
+        Set-KnownFolderPath -KnownFolder 'Documents' -Path "$ONEDRIVESYNC\Documents" -moveContent $moveContent
+        Set-KnownFolderPath -KnownFolder 'Downloads' -Path "$ONEDRIVESYNC\Downloads" -moveContent $moveContent
+        Set-KnownFolderPath -KnownFolder 'Pictures' -Path "$ONEDRIVESYNC\Pictures" -moveContent $moveContent
+        Set-KnownFolderPath -KnownFolder 'Music' -Path "$ONEDRIVESYNC\Music" -moveContent $moveContent
+        Set-KnownFolderPath -KnownFolder 'Videos' -Path "$ONEDRIVESYNC\Videos" -moveContent $moveContent
 
         # Annoying Other Folders
-        Set-KnownFolderPath -KnownFolder 'Contacts' -Path "$ONEDRIVESYNC\Work Sync\Contacts"
-        Set-KnownFolderPath -KnownFolder 'Favorites' -Path "$ONEDRIVESYNC\Work Sync\Favorites"
-        Set-KnownFolderPath -KnownFolder 'Links' -Path "$ONEDRIVESYNC\Work Sync\Links"
-        Set-KnownFolderPath -KnownFolder 'RoamingAppData' -Path "$ONEDRIVESYNC\Work Sync\AppData"
+        Set-KnownFolderPath -KnownFolder 'Contacts' -Path "$ONEDRIVESYNC\Work Sync\Contacts" -moveContent $moveContent
+        Set-KnownFolderPath -KnownFolder 'Favorites' -Path "$ONEDRIVESYNC\Work Sync\Favorites" -moveContent $moveContent
+        Set-KnownFolderPath -KnownFolder 'Links' -Path "$ONEDRIVESYNC\Work Sync\Links" -moveContent $moveContent
+        Set-KnownFolderPath -KnownFolder 'RoamingAppData' -Path "$ONEDRIVESYNC\Work Sync\AppData" -moveContent $moveContent
         #>
 
         #Uncomment this option if you use Azure AD. It can provide single-signon capability.
@@ -301,3 +307,4 @@ function StartOneDrive-FolderRedirect {
     End {
     }
 }#/function
+#
