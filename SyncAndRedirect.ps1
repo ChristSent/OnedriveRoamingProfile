@@ -142,25 +142,29 @@ public extern static int SHSetKnownFolderPath(ref Guid folderId, uint flags, Int
         if (Test-Path $Path -PathType Container) {
             $Leaf = Split-Path -Path "$Path" -Leaf
             if ($Leaf -like "AppData") {
+                Write-Output "Existing content for $(Split-Path -Path "$Path" -Leaf) is being copied to the redirected file path"
 	            Copy-Item "$HOME\$Leaf\Roaming" $Path -Force
             } else {
+                Write-Output "Existing content for $(Split-Path -Path "$Path" -Leaf) is being moved to the redirected file path"
 	            Move-Item "$HOME\$Leaf\*" $Path -Force
                 # Call SHSetKnownFolderPath
-                return $Type::SHSetKnownFolderPath([ref]$KnownFolders[$KnownFolder], 0, 0, $Path)
+                return $Type::SHSetKnownFolderPath([ref]$KnownFolders[$KnownFolder], 0, 0, $Path) | Out-Null
             }#/
         } else {
             throw New-Object System.IO.DirectoryNotFoundException "Could not find part of the path $Path."
         }
 	} else {
-        Write-Output "Existing content will not be moved to the redirected file path"
+        Write-Output "Existing content for $(Split-Path -Path "$Path" -Leaf) will not be moved to the redirected file path"
     }
-	# Fix up permissions, if we're still here
-	attrib +r $Path
+	
+    <# ---- This section was in original script, but seems redundant? ---
+        # Fix up permissions, if we're still here
+	    attrib +r $Path
 
-	$Leaf = Split-Path -Path "$Path" -Leaf
-	Move-Item "$HOME\$Leaf\*" $Path
-	# rd $HOME\$Leaf -recurse -Force
-
+	    $Leaf = Split-Path -Path "$Path" -Leaf
+	    Move-Item "$HOME\$Leaf\*" $Path
+	    # rd $HOME\$Leaf -recurse -Force
+    #>
 }#/function
 function StartOneDrive-FolderRedirect {
 <#
@@ -302,7 +306,7 @@ function StartOneDrive-FolderRedirect {
         ensures all users have their local OneDrive folder in the location that you've specified.
         If you disable this setting, users can change the location of their sync folder during the Welcome to OneDrive wizard.#>
 
-        start odopen://sync?useremail=$env:USERNAME@$O365domain
+        #start odopen://sync?useremail=$env:USERNAME@$O365domain
     }
     End {
     }
