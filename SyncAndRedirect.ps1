@@ -24,7 +24,6 @@ function Set-KnownFolderPath {
             [Parameter(Mandatory = $true)]
             [string]$Path
     )
-
     # Define known folder GUIDs
     $KnownFolders = @{
         'AddNewPrograms' = 'de61d971-5ebc-4f02-a3a9-6c82895e5c04';
@@ -134,9 +133,12 @@ public extern static int SHSetKnownFolderPath(ref Guid folderId, uint flags, Int
     # Validate the path
     if (Test-Path $Path -PathType Container) {
         $Leaf = Split-Path -Path "$Path" -Leaf
-	    Move-Item "$HOME\$Leaf\*" $Path -Force
-        # Call SHSetKnownFolderPath
-        return $Type::SHSetKnownFolderPath([ref]$KnownFolders[$KnownFolder], 0, 0, $Path)
+        if ($Leaf -like "AppData") {
+	        Copy-Item "$HOME\$Leaf\Roaming" $Path -Force
+        } else {
+	        Move-Item "$HOME\$Leaf\*" $Path -Force
+            # Call SHSetKnownFolderPath
+            return $Type::SHSetKnownFolderPath([ref]$KnownFolders[$KnownFolder], 0, 0, $Path)
     } else {
         throw New-Object System.IO.DirectoryNotFoundException "Could not find part of the path $Path."
     }
@@ -154,11 +156,19 @@ function StartOneDrive-FolderRedirect {
 .Synopsis
    Sets a known folder's path using SHSetKnownFolderPath (shell function) and Add-Type cmdlet.
 .DESCRIPTION
+   This script enables folder redirection. The specified user environment profile folders will redirect to the user's OneDrive path.
+
+   Credits:
+   This project was edited and updated by ChrisM and ChrisW.
+
    This project was obtained from https://gist.github.com/semenko/49a28675e4aae5c8be49b83960877ac5
 
-   That project was Derived from http://stackoverflow.com/questions/25709398/set-location-of-special-folders-with-powershell
+   That project was derived from http://stackoverflow.com/questions/25709398/set-location-of-special-folders-with-powershell
 .EXAMPLE
-   Example of how to use this cmdlet
+   StartOneDrive-FolderRedirect -O365domain contoso.com -O365TennantName contoso.com -OneDriveAccountType Business
+
+   This will execute the script based on an environment within the www.contoso.com domain. This is a Business account, therefore the
+   $ONEDRIVESYNC variable will include the domain name, as opposed to the OneDrive personal account which does not use a domain name
 .EXAMPLE
    Another example of how to use this cmdlet
 .INPUTS
